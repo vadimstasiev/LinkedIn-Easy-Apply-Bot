@@ -48,6 +48,7 @@ class EasyApplyBot:
                  username,
                  password,
                  phone_number,
+                 wait_for_user,
                  uploads={},
                  filename='output.csv',
                  blacklist=[],
@@ -68,6 +69,7 @@ class EasyApplyBot:
         self.blackListTitles = blackListTitles
         self.start_linkedin(username, password)
         self.phone_number = phone_number
+        self.wait_for_user = wait_for_user
 
     def get_appliedIDs(self, filename) -> list | None:
         try:
@@ -212,10 +214,13 @@ class EasyApplyBot:
                     self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                     location,
                                                                     jobs_per_page)
+
                 # loop over IDs to apply
                 for i, jobID in enumerate(jobIDs):
                     count_job += 1
                     self.get_job_page(jobID)
+                    log.info('jobs found '+ str(jobID))                                                                   
+
 
                     # get easy apply button
                     button = self.get_easy_apply_button()
@@ -316,7 +321,7 @@ class EasyApplyBot:
 
 
 
-        input_field = self.browser.find_element("xpath", "//input[contains(@name,'phoneNumber')]")
+        input_field = self.browser.find_element(By.XPATH, "//input[contains(@id,'phoneNumber')]")
 
 
         if input_field:
@@ -356,6 +361,12 @@ class EasyApplyBot:
         else:
             log.debug(f"Could not find phone number field")
                 
+    def fillout_form(self) -> bool:
+        # attempt to answer forms, return False if that succeeds
+        # return False
+        # Return True to break waiting for input
+        log.info("could not fill out the boxes")
+        return (self.wait_for_user=="false" or self.wait_for_user=="False")
 
 
     def send_resume(self) -> bool:
@@ -373,15 +384,23 @@ class EasyApplyBot:
                               "button[aria-label='Submit application']")
             submit_application_locator = (By.CSS_SELECTOR,
                                           "button[aria-label='Submit application']")
-            error_locator = (By.CSS_SELECTOR,
+            error_locator_1 = (By.CSS_SELECTOR,
                              "p[data-test-form-element-error-message='true']")
+
+            error_locator_2 = (By.XPATH, "//*[contains(@class,'artdeco-inline-feedback__message')]")
+
             upload_locator = (By.CSS_SELECTOR, "input[name='file']")
             follow_locator = (By.CSS_SELECTOR, "label[for='follow-company-checkbox']")
 
+            
+            radio_box_title_locator = (By.XPATH, "//legend[contains(@class,'fb-dash-form-element__label')]")
+
             submitted = False
+
+            # current job form filling, tries to move forward fill out the required forms 
             while True:
 
-                # Upload Cover Letter if possible
+                # Upload - Cover Letter if possible
                 if is_present(upload_locator):
 
                     input_buttons = self.browser.find_elements(upload_locator[0],
@@ -399,7 +418,7 @@ class EasyApplyBot:
                     # input_button[0].send_keys(self.cover_letter_loctn)
                     time.sleep(random.uniform(4.5, 6.5))
 
-                # Click Next or submitt button if possible
+                # Buttons - Click Next or submitt button if possible
                 button: None = None
                 buttons: list = [next_locater, review_locater, follow_locator,
                            submit_locater, submit_application_locator]
@@ -407,13 +426,26 @@ class EasyApplyBot:
                     if is_present(button_locator):
                         button: None = self.wait.until(EC.element_to_be_clickable(button_locator))
 
-                    if is_present(error_locator):
-                        for element in self.browser.find_elements(error_locator[0],
-                                                                  error_locator[1]):
+                    if is_present(error_locator_1):
+                        for element in self.browser.find_elements(error_locator_1[0],
+                                                                  error_locator_1[1]):
                             text = element.text
                             if "Please enter a valid answer" in text:
-                                button = None
-                                break
+                                result: bool = self.fillout_form()
+                                if(result):
+                                    button = None
+                                    break
+                    if is_present(error_locator_2):
+                        for element in self.browser.find_elements(error_locator_2[0],
+                                                                    error_locator_2[1]):
+                            # text = element.get_attribute('innerHTML')
+                            text = element.text
+                            if "Please enter a valid answer" in text:
+                                # try to fill out answers before breaking?
+                                result: bool = self.fillout_form()
+                                if(result):
+                                    button = None
+                                    break
                     if button:
                         button.click()
                         time.sleep(random.uniform(1.5, 2.5))
@@ -421,6 +453,8 @@ class EasyApplyBot:
                             submitted = True
                         if i != 2:
                             break
+
+                # Termination - terminate current job form filling 
                 if button == None:
                     log.info("Could not complete submission")
                     break
@@ -437,6 +471,10 @@ class EasyApplyBot:
             raise (e)
 
         return submitted
+
+
+
+
 
     def load_page(self, sleep=1):
         scroll_page = 0
@@ -488,6 +526,7 @@ if __name__ == '__main__':
     assert parameters['username'] is not None
     assert parameters['password'] is not None
     assert parameters['phone_number'] is not None
+    assert parameters['wait_for_user'] is not None
 
     if 'uploads' in parameters.keys() and type(parameters['uploads']) == list:
         raise Exception("uploads read from the config file appear to be in list format" +
@@ -508,6 +547,7 @@ if __name__ == '__main__':
     bot = EasyApplyBot(parameters['username'],
                        parameters['password'],
                        parameters['phone_number'],
+                       parameters['wait_for_user'],
                        uploads=uploads,
                        filename=output_filename,
                        blacklist=blacklist,
