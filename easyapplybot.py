@@ -19,7 +19,7 @@ import yaml
 from datetime import datetime, timedelta
 
 log = logging.getLogger(__name__)
-driver = webdriver.Chrome(ChromeDriverManager().install())
+# driver = webdriver.Chrome(ChromeDriverManager().install())
 
 
 def setupLogger() -> None:
@@ -62,8 +62,8 @@ class EasyApplyBot:
         past_ids: list | None = self.get_appliedIDs(filename)
         self.appliedJobIDs: list = past_ids if past_ids != None else []
         self.filename: str = filename
-        self.options = self.browser_options()
-        self.browser = driver
+        # self.options = self.browser_options()
+        self.browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=self.browser_options())
         self.wait = WebDriverWait(self.browser, 30)
         self.blacklist = blacklist
         self.blackListTitles = blackListTitles
@@ -93,7 +93,10 @@ class EasyApplyBot:
         options.add_argument("--start-maximized")
         options.add_argument("--ignore-certificate-errors")
         options.add_argument('--no-sandbox')
-        options.add_argument("--disable-extensions")
+        # options.add_argument("--disable-extensions")
+
+        options.add_extension('./dark_reader.crx')
+
 
         # Disable webdriver flags or you will be easily detectable
         options.add_argument("--disable-blink-features")
@@ -101,6 +104,8 @@ class EasyApplyBot:
         return options
 
     def start_linkedin(self, username, password) -> None:
+        time.sleep(1)
+        self.browser.switch_to.window(self.browser.window_handles[1])
         log.info("Logging in.....Please wait :)  ")
         self.browser.get("https://www.linkedin.com/login?trk=guest_homepage-basic_nav-header-signin")
         try:
