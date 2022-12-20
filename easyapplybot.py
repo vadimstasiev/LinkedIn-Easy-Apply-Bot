@@ -119,7 +119,8 @@ class EasyApplyBot:
             pw_field.send_keys(password)
             time.sleep(2)
             login_button.click()
-            time.sleep(3)
+            # Complete Security Test within 15 seconds
+            time.sleep(15)
         except TimeoutException:
             log.info("TimeoutException! Username/password field or login button not found")
 
@@ -371,7 +372,7 @@ class EasyApplyBot:
         # return False
         # Return True to break waiting for input
         log.info("could not fill out the boxes")
-        return (self.wait_for_user=="false" or self.wait_for_user=="False")
+        return (self.wait_for_user==False)
 
 
     def send_resume(self) -> bool:
