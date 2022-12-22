@@ -379,6 +379,10 @@ class EasyApplyBot:
                 
     def fillout_form(self) -> bool:
         radio_box_fieldset_locator = (By.XPATH, "//fieldset[contains(@id,'radio-button-form')]")
+        # Relative
+        radio_box_title_locator = (By.XPATH, ".//legend") 
+        current_radio_box_label_yes_locator = (By.XPATH, ".//label[contains(@data-test-text-selectable-option__label, 'Yes')]")
+        current_radio_box_label_no_locator = (By.XPATH, ".//label[contains(@data-test-text-selectable-option__label, 'No')]")
 
         # attempt to answer forms, return False if succeeds in filling out at least one field
         # return False
@@ -388,41 +392,45 @@ class EasyApplyBot:
         if self.is_present(radio_box_fieldset_locator):
             log.info("radio_box_title_locator selector is present")
             elements = self.browser.find_elements(radio_box_fieldset_locator[0], radio_box_fieldset_locator[1])
+            # a fieldset holds the question and input fields for the given question
             for fieldset in elements:
-                radio_box_title = fieldset.find_element(By.XPATH, "//legend")
-                radio_box_divs = fieldset.find_elements(By.XPATH, "//div[contains(@class, 'fb-text-selectable__option display-flex')]")
-                for div in radio_box_divs: # each div contains an input with a label (Yes or No)
-                    # current_radio_box_input = div.find_elements(By.XPATH, "//input")[0]
-                    current_radio_box_label_yes = None
-                    current_radio_box_label_no = None
-                    try:
-                        current_radio_box_label_yes = div.find_elements(By.XPATH, "//label[contains(@data-test-text-selectable-option__label, 'Yes')]")
-                        current_radio_box_label_no = div.find_elements(By.XPATH, "//label[contains(@data-test-text-selectable-option__label, 'No')]")
-                    except:
-                        pass
-                    if(current_radio_box_label_no is not None):
-                        if("Will you now or in the future require sponsorship for employment visa status?" in radio_box_title.text):
-                            # if("No" in current_radio_box_label.text):
-                            #     current_radio_box_label.click()
-                            if(len(current_radio_box_label_no)>0):
-                                current_radio_box_label_no[0].click()
-                                has_filled_out_fields = True
+                radio_box_title = None
+                try:
+                    radio_box_title = fieldset.find_element(radio_box_title_locator[0], radio_box_title_locator[1])
+                except:
+                    pass
+                # current_radio_box_input = div.find_elements(By.XPATH, "//input")[0]
+                current_radio_box_label_yes = None
+                current_radio_box_label_no = None
+                try:
+                    current_radio_box_label_yes = fieldset.find_element(current_radio_box_label_yes_locator[0], current_radio_box_label_yes_locator[1])
+                    current_radio_box_label_no = fieldset.find_element(current_radio_box_label_no_locator[0], current_radio_box_label_no_locator[1])
+                except:
+                    pass
+                if(current_radio_box_label_no is not None):
+                    # this only gets the first radio_box_title.text
+                    if("Will you now or in the future require sponsorship for employment visa status?" in radio_box_title.text):
+                        # if("No" in current_radio_box_label.text):
+                        #     current_radio_box_label.click()
+                        # if(len(current_radio_box_label_no)>0):
+                        current_radio_box_label_no.click()
+                        has_filled_out_fields = True
 
 
-                    if(current_radio_box_label_yes is not None):
-                        if("Are you comfortable commuting to this job's location? " in radio_box_title.text):
-                            # if("No" in current_radio_box_label.text):
-                            #     current_radio_box_label.click()
-                            if(len(current_radio_box_label_yes)>0):
-                                current_radio_box_label_yes[0].click()
-                                has_filled_out_fields = True
+                if(current_radio_box_label_yes is not None):
+                    if("Are you comfortable commuting to this job's location?" in radio_box_title.text):
+                        # if("No" in current_radio_box_label.text):
+                        #     current_radio_box_label.click()
+                        # if(len(current_radio_box_label_yes)>0):
+                        current_radio_box_label_yes.click()
+                        has_filled_out_fields = True
 
-                        if("Are you comfortable working in a remote setting? " in radio_box_title.text):
-                            # if("No" in current_radio_box_label.text):
-                            #     current_radio_box_label.click()
-                            if(len(current_radio_box_label_yes)>0):
-                                current_radio_box_label_yes[0].click()
-                                has_filled_out_fields = True
+                    if("Are you comfortable working in a remote setting? " in radio_box_title.text):
+                        # if("No" in current_radio_box_label.text):
+                        #     current_radio_box_label.click()
+                        # if(len(current_radio_box_label_yes)>0):
+                        current_radio_box_label_yes.click()
+                        has_filled_out_fields = True
 
                     
                         
