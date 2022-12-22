@@ -2,6 +2,7 @@ import time, random, os, csv, platform
 import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
@@ -19,8 +20,6 @@ import yaml
 from datetime import datetime, timedelta
 
 log = logging.getLogger(__name__)
-# driver = webdriver.Chrome(ChromeDriverManager().install())
-
 
 def setupLogger() -> None:
     dt: str = datetime.strftime(datetime.now(), "%m_%d_%y %H_%M_%S ")
@@ -62,8 +61,8 @@ class EasyApplyBot:
         past_ids: list | None = self.get_appliedIDs(filename)
         self.appliedJobIDs: list = past_ids if past_ids != None else []
         self.filename: str = filename
-        # self.options = self.browser_options()
-        self.browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=self.browser_options())
+        # self.browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=self.browser_options())
+        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.browser_options())
         self.wait = WebDriverWait(self.browser, 30)
         self.blacklist = blacklist
         self.blackListTitles = blackListTitles
@@ -175,8 +174,8 @@ class EasyApplyBot:
 
                 # LinkedIn displays the search results in a scrollable <div> on the left side, we have to scroll to its bottom
 
-                # scrollresults = self.browser.find_element(By.CLASS_NAME,
-                #     "jobs-search-results-list"
+                # scrollresults = self.browser.find_element(By.XPATH,
+                #     '//ul[@class="scaffold-layout__list-container"]'
                 # )
                 # Selenium only detects visible elements; if we scroll to the bottom too fast, only 8-9 results will be loaded into IDs list
                 # for i in range(300, 3000, 100):
@@ -220,6 +219,13 @@ class EasyApplyBot:
                     self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                     location,
                                                                     jobs_per_page)
+
+                # # not sure if needed
+                # self.browser.execute_script("""
+                #     setInterval( function() {
+                #         document.getElementsByClassName("jobs-search-results-list")[0].scrollTop+=100
+                #     }, 2) ; 
+                # """)
 
                 # loop over IDs to apply
                 for i, jobID in enumerate(jobIDs):
@@ -366,20 +372,70 @@ class EasyApplyBot:
 
         else:
             log.debug(f"Could not find phone number field")
+
+    def is_present(self, button_locator) -> bool:
+        return len(self.browser.find_elements(button_locator[0],
+                                                button_locator[1])) > 0
                 
     def fillout_form(self) -> bool:
-        # attempt to answer forms, return False if that succeeds
+        radio_box_fieldset_locator = (By.XPATH, "//fieldset[contains(@id,'radio-button-form')]")
+
+        # attempt to answer forms, return False if succeeds in filling out at least one field
         # return False
+
+        has_filled_out_fields = False
+
+        if self.is_present(radio_box_fieldset_locator):
+            log.info("radio_box_title_locator selector is present")
+            elements = self.browser.find_elements(radio_box_fieldset_locator[0], radio_box_fieldset_locator[1])
+            for fieldset in elements:
+                radio_box_title = fieldset.find_element(By.XPATH, "//legend")
+                radio_box_divs = fieldset.find_elements(By.XPATH, "//div[contains(@class, 'fb-text-selectable__option display-flex')]")
+                for div in radio_box_divs: # each div contains an input with a label (Yes or No)
+                    # current_radio_box_input = div.find_elements(By.XPATH, "//input")[0]
+                    current_radio_box_label_yes = None
+                    current_radio_box_label_no = None
+                    try:
+                        current_radio_box_label_yes = div.find_elements(By.XPATH, "//label[contains(@data-test-text-selectable-option__label, 'Yes')]")
+                        current_radio_box_label_no = div.find_elements(By.XPATH, "//label[contains(@data-test-text-selectable-option__label, 'No')]")
+                    except:
+                        pass
+                    if(current_radio_box_label_no is not None):
+                        if("Will you now or in the future require sponsorship for employment visa status?" in radio_box_title.text):
+                            # if("No" in current_radio_box_label.text):
+                            #     current_radio_box_label.click()
+                            if(len(current_radio_box_label_no)>0):
+                                current_radio_box_label_no[0].click()
+                                has_filled_out_fields = True
+
+
+                    if(current_radio_box_label_yes is not None):
+                        if("Are you comfortable commuting to this job's location? " in radio_box_title.text):
+                            # if("No" in current_radio_box_label.text):
+                            #     current_radio_box_label.click()
+                            if(len(current_radio_box_label_yes)>0):
+                                current_radio_box_label_yes[0].click()
+                                has_filled_out_fields = True
+
+                        if("Are you comfortable working in a remote setting? " in radio_box_title.text):
+                            # if("No" in current_radio_box_label.text):
+                            #     current_radio_box_label.click()
+                            if(len(current_radio_box_label_yes)>0):
+                                current_radio_box_label_yes[0].click()
+                                has_filled_out_fields = True
+
+                    
+                        
+        if(has_filled_out_fields):
+            return False
+
+
         # Return True to break waiting for input
         log.info("could not fill out the boxes")
         return (self.wait_for_user==False)
 
 
     def send_resume(self) -> bool:
-        def is_present(button_locator) -> bool:
-            return len(self.browser.find_elements(button_locator[0],
-                                                  button_locator[1])) > 0
-
         try:
             time.sleep(random.uniform(1.5, 2.5))
             next_locater = (By.CSS_SELECTOR,
@@ -399,15 +455,13 @@ class EasyApplyBot:
             follow_locator = (By.CSS_SELECTOR, "label[for='follow-company-checkbox']")
 
             
-            radio_box_title_locator = (By.XPATH, "//legend[contains(@class,'fb-dash-form-element__label')]")
-
             submitted = False
 
-            # current job form filling, tries to move forward fill out the required forms 
+            # current job form filling, tries to move forward fill out the required forms
             while True:
 
                 # Upload - Cover Letter if possible
-                if is_present(upload_locator):
+                if self.is_present(upload_locator):
 
                     input_buttons = self.browser.find_elements(upload_locator[0],
                                                                upload_locator[1])
@@ -429,26 +483,25 @@ class EasyApplyBot:
                 buttons: list = [next_locater, review_locater, follow_locator,
                            submit_locater, submit_application_locator]
                 for i, button_locator in enumerate(buttons):
-                    if is_present(button_locator):
+                    if self.is_present(button_locator):
                         button: None = self.wait.until(EC.element_to_be_clickable(button_locator))
 
-                    if is_present(error_locator_1):
+                    result: bool = self.fillout_form()
+
+                    if self.is_present(error_locator_1):
                         for element in self.browser.find_elements(error_locator_1[0],
                                                                   error_locator_1[1]):
                             text = element.text
                             if "Please enter a valid answer" in text:
-                                result: bool = self.fillout_form()
                                 if(result):
                                     button = None
                                     break
-                    if is_present(error_locator_2):
+                    if self.is_present(error_locator_2):
                         for element in self.browser.find_elements(error_locator_2[0],
                                                                     error_locator_2[1]):
                             # text = element.get_attribute('innerHTML')
                             text = element.text
                             if "Please enter a valid answer" in text:
-                                # try to fill out answers before breaking?
-                                result: bool = self.fillout_form()
                                 if(result):
                                     button = None
                                     break
