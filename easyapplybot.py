@@ -428,11 +428,10 @@ class EasyApplyBot:
                         
         if(has_filled_out_fields):
             return False
+        else:
+            log.info("could not fill out the boxes")
+            return True
 
-
-        # Return True to break waiting for input
-        log.info("could not fill out the boxes")
-        return (self.wait_for_user==False)
 
 
     def send_resume(self) -> bool:
@@ -486,6 +485,7 @@ class EasyApplyBot:
                     if self.is_present(button_locator):
                         button: None = self.wait.until(EC.element_to_be_clickable(button_locator))
 
+                    # result not needed anymore
                     result: bool = self.fillout_form()
 
                     if self.is_present(error_locator_1):
@@ -493,7 +493,7 @@ class EasyApplyBot:
                                                                   error_locator_1[1]):
                             text = element.text
                             if "Please enter a valid answer" in text:
-                                if(result):
+                                if(self.wait_for_user==False):
                                     button = None
                                     break
                     if self.is_present(error_locator_2):
@@ -502,7 +502,7 @@ class EasyApplyBot:
                             # text = element.get_attribute('innerHTML')
                             text = element.text
                             if "Please enter a valid answer" in text:
-                                if(result):
+                                if(self.wait_for_user==False):
                                     button = None
                                     break
                     if button:
