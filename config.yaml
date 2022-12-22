@@ -1,6 +1,7 @@
 username: 
 password: 
 phone_number:
+wait_for_user: false # or true if you want it to wait for you to fill out forms, linkedin keeps data and reuses in other forms, meaning the more you fill the more applications will go through
 
 positions:
 - Data Scientist
