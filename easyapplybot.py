@@ -385,7 +385,6 @@ class EasyApplyBot:
         current_radio_box_label_no_locator = (By.XPATH, ".//label[contains(@data-test-text-selectable-option__label, 'No')]")
 
         # attempt to answer forms, return False if succeeds in filling out at least one field
-        # return False
 
         has_filled_out_fields = False
 
@@ -399,7 +398,6 @@ class EasyApplyBot:
                     radio_box_title = fieldset.find_element(radio_box_title_locator[0], radio_box_title_locator[1])
                 except:
                     pass
-                # current_radio_box_input = div.find_elements(By.XPATH, "//input")[0]
                 current_radio_box_label_yes = None
                 current_radio_box_label_no = None
                 try:
@@ -408,27 +406,17 @@ class EasyApplyBot:
                 except:
                     pass
                 if(current_radio_box_label_no is not None):
-                    # this only gets the first radio_box_title.text
                     if("Will you now or in the future require sponsorship for employment visa status?" in radio_box_title.text):
-                        # if("No" in current_radio_box_label.text):
-                        #     current_radio_box_label.click()
-                        # if(len(current_radio_box_label_no)>0):
                         current_radio_box_label_no.click()
                         has_filled_out_fields = True
 
 
                 if(current_radio_box_label_yes is not None):
                     if("Are you comfortable commuting to this job's location?" in radio_box_title.text):
-                        # if("No" in current_radio_box_label.text):
-                        #     current_radio_box_label.click()
-                        # if(len(current_radio_box_label_yes)>0):
                         current_radio_box_label_yes.click()
                         has_filled_out_fields = True
 
                     if("Are you comfortable working in a remote setting? " in radio_box_title.text):
-                        # if("No" in current_radio_box_label.text):
-                        #     current_radio_box_label.click()
-                        # if(len(current_radio_box_label_yes)>0):
                         current_radio_box_label_yes.click()
                         has_filled_out_fields = True
 
